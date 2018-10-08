@@ -38,9 +38,20 @@ function getPlugin () {
 
     let scrollValue = window.pageYOffset,
       itemIndex = 0
+    
+    let supportsPassive = false;
+try {
+    var opts = Object.defineProperty({}, "passive", {
+        get: function get() {
+            supportsPassive = true;
+        }
+    });
 
-    window.addEventListener('scroll', scrollThrottledHandler)
-    window.addEventListener('resize', scrollThrottledHandler)
+    window.addEventListener('scroll', scrollThrottledHandler, opts)
+    window.addEventListener('resize', scrollThrottledHandler, opts)
+} catch (e) {}
+
+    
 
     function scrollHandler(e) {
       let viewportTop = window.pageYOffset,
