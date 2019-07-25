@@ -1,7 +1,7 @@
 'use strict'
 
 function getPlugin () {
-  const ClassNames = {
+  var ClassNames = {
       Full: 'view-in--full',
       In: 'view-in',
       GtHalf: 'view-in--gt-half',
@@ -16,45 +16,52 @@ function getPlugin () {
       Progress: 'progress'
     }
 
-  function throttle(handler, timeout = 0) {
+  function throttle (handler, timeout) {
+    timeout = typeof timeout !== 'undefined' ? timeout : 0
     if (!handler || typeof handler !== 'function') throw new Error('Throttle handler argument is not incorrect. Must be a function.')
-    let timeoutTime = 0
+    var timeoutTime = 0
     return function (e) {
       if (timeoutTime) return
-      timeoutTime = setTimeout(() => {
+      timeoutTime = setTimeout(function () {
         timeoutTime = 0
         handler(e)
       }, timeout)
     }
   }
 
-  function roundPercent(v) {
+  function roundPercent (v) {
     return (v * 1000 | 0) / 1000
   }
 
-  function createInstance(Vue, options) {
-    const items = {},
-      scrollThrottledHandler = throttle(scrollHandler, 40)
+  function objectAssign (obj, src) {
+    for (var key in src) {
+      if (src.hasOwnProperty(key)) obj[key] = src[key]
+    }
+    return obj
+  }
 
-    let scrollValue = window.pageYOffset,
+  function createInstance (Vue, options) {
+    options = objectAssign({throttleInterval: 16}, options) // 60fps
+    var items = {},
+      scrollThrottledHandler = throttle(scrollHandler, options.throttleInterval)
+    var scrollValue = window.pageYOffset,
       itemIndex = 0
     
     let supportsPassive = false;
-try {
-    var opts = Object.defineProperty({}, "passive", {
-        get: function get() {
-            supportsPassive = true;
-        }
-    });
+    try {
+        var opts = Object.defineProperty({}, "passive", {
+            get: function get() {
+                supportsPassive = true;
+            }
+        });
 
-    window.addEventListener('scroll', scrollThrottledHandler, opts)
-    window.addEventListener('resize', scrollThrottledHandler, opts)
-} catch (e) {}
+        window.addEventListener('scroll', scrollThrottledHandler, opts)
+        window.addEventListener('resize', scrollThrottledHandler, opts)
 
-    
+    } catch (e) {}
 
-    function scrollHandler(e) {
-      let viewportTop = window.pageYOffset,
+    function scrollHandler (e) {
+      var viewportTop = window.pageYOffset,
         viewportBottom = window.pageYOffset + window.document.documentElement.clientHeight,
         viewportHeight = window.document.documentElement.clientHeight,
         documentHeight = window.document.documentElement.scrollHeight,
@@ -62,8 +69,8 @@ try {
 
       scrollValue = viewportTop - scrollValue
 
-      function getInType(i) {
-        const rect = i.element.getBoundingClientRect(),
+      function getInType (i) {
+        var rect = i.element.getBoundingClientRect(),
           elementTop = rect.top + viewportTop,
           elementBottom = elementTop + rect.height,
           topIn = elementTop > viewportTop && elementTop < viewportBottom,
@@ -78,9 +85,15 @@ try {
         return [(topIn ? 1 : 0) | (bottomIn ? 2 : 0) | (isAbove ? 4 : 0) | (isBelow ? 8 : 0), roundPercent(percentInView), roundPercent(centerPercent), roundPercent(topPercent), rect]
       }
 
-      for (let id in items) {
-        const i = items[id],
-          [type, percentInView, percentCenter, percentTop, rect] = getInType(i),
+      for (var id in items) {
+        var i = items[id],
+          inType = getInType(i)
+
+        var type = inType[0],
+          percentInView = inType[1],
+          percentCenter = inType[2],
+          percentTop = inType[3],
+          rect = inType[4],
           classes = i.classes,
           classList = i.element.classList,
           inViewChange = i.percent <= 0 && percentInView,
@@ -89,9 +102,11 @@ try {
         if (percentInView === 0 && i.percent === 0) continue
         i.rect = rect
 
-        let eventType = (inViewChange && EventTypes.Enter) || (outViewChange && EventTypes.Exit) || EventTypes.Progress
+        var eventType = (inViewChange && EventTypes.Enter) || (outViewChange && EventTypes.Exit) || EventTypes.Progress
 
-        Object.keys(classes).forEach(v => (classes[v] = false))
+        Object.keys(classes).forEach(function (v) {
+          classes[v] = false
+        })
 
         if (percentInView >= 0.5) {
           classes[ClassNames.GtHalf] = true
@@ -119,23 +134,31 @@ try {
           classes[ClassNames.In] = true
         }
 
-        Object.keys(classes).forEach(n => {
+        Object.keys(classes).forEach(function (n) {
           classList.toggle(n, classes[n])
           if (!classes[n]) delete classes[n]
         })
 
         if (typeof i.handler === 'function') {
-          i.handler({type: eventType, percentInView, percentTop, percentCenter, scrollPercent, scrollValue, target: i})
+          i.handler({
+            type: eventType,
+            percentInView: percentInView,
+            percentTop: percentTop,
+            percentCenter: percentCenter,
+            scrollPercent: scrollPercent,
+            scrollValue: scrollValue,
+            target: i
+          })
         }
 
         if (typeof i.onceenter === 'function' && eventType === EventTypes.Enter) {
           i.onceenter({
             type: eventType,
-            percentInView,
-            percentTop,
-            percentCenter,
-            scrollPercent,
-            scrollValue,
+            percentInView: percentInView,
+            percentTop: percentTop,
+            percentCenter: percentCenter,
+            scrollPercent: scrollPercent,
+            scrollValue: scrollValue,
             target: i
           })
           delete i.onceenter
@@ -153,11 +176,12 @@ try {
         delete items[element.$scrollId]
       },
       inserted: function (element, bind) {
-        let id = element.$scrollId || ('scrollId-' + itemIndex++),
+        var id = element.$scrollId || ('scrollId-' + itemIndex++),
           item = items[id] || {element: element, classes: {}, percent: -1, rect: {}}
 
         if (bind.modifiers && bind.modifiers.once) {
-          item.onceenter = bind.value || function () {}
+          item.onceenter = bind.value || function () {
+          }
         }
         else {
           item.persist = true
