@@ -75,14 +75,16 @@ function getPlugin () {
           elementBottom = elementTop + rect.height,
           topIn = elementTop > viewportTop && elementTop < viewportBottom,
           bottomIn = elementBottom > viewportTop && elementBottom < viewportBottom,
-          percentInView = topIn || bottomIn ? ((bottomIn ? elementBottom : viewportBottom) - (topIn ? elementTop : viewportTop)) / rect.height : 0,
+          fullIn = elementTop < viewportTop && elementBottom > viewportBottom,
+          percentInView = topIn || bottomIn ? ((bottomIn ? elementBottom : viewportBottom) - (topIn ? elementTop : viewportTop)) / rect.height : (fullIn ? 100 : 0),
           centerPercent = (elementTop - viewportTop + rect.height / 2) / viewportHeight,
           zeroPoint = viewportTop - rect.height,
           topPercent = (elementTop - zeroPoint) / (viewportBottom - zeroPoint),
+          percentFromViewportTop = rect.top / viewportHeight,
           isAbove = percentInView === 0 && elementTop < viewportTop,
           isBelow = percentInView === 0 && elementTop > viewportTop
 
-        return [(topIn ? 1 : 0) | (bottomIn ? 2 : 0) | (isAbove ? 4 : 0) | (isBelow ? 8 : 0), roundPercent(percentInView), roundPercent(centerPercent), roundPercent(topPercent), rect]
+        return [(topIn ? 1 : 0) | (bottomIn ? 2 : 0) | (fullIn ? 3 : 0) | (isAbove ? 4 : 0) | (isBelow ? 8 : 0), roundPercent(percentInView), roundPercent(centerPercent), roundPercent(topPercent), rect, roundPercent(percentFromViewportTop)]
       }
 
       for (var id in items) {
@@ -94,6 +96,7 @@ function getPlugin () {
           percentCenter = inType[2],
           percentTop = inType[3],
           rect = inType[4],
+          percentFromViewportTop = inType[5],
           classes = i.classes,
           classList = i.element.classList,
           inViewChange = i.percent <= 0 && percentInView,
@@ -144,6 +147,7 @@ function getPlugin () {
             type: eventType,
             percentInView: percentInView,
             percentTop: percentTop,
+            percentFromViewportTop: percentFromViewportTop,
             percentCenter: percentCenter,
             scrollPercent: scrollPercent,
             scrollValue: scrollValue,
@@ -156,6 +160,7 @@ function getPlugin () {
             type: eventType,
             percentInView: percentInView,
             percentTop: percentTop,
+            percentFromViewportTop: percentFromViewportTop,
             percentCenter: percentCenter,
             scrollPercent: scrollPercent,
             scrollValue: scrollValue,
